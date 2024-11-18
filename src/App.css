@@ -36,3 +36,20 @@
     transform: rotate(360deg);
   }
 }
+
+/* Ensure consistent sizing and scrolling */
+
+/* .ant-layout {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+} */
+
+/* .ant-layout-content {
+  display: flex;
+  flex: 1;
+} */
+
+.ant-card {
+  margin-bottom: 20px;
+}
