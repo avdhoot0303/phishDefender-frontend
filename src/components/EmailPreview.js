@@ -33,7 +33,7 @@ const EmailPreview = ({ email }) => {
       }}
     >
       <Card
-        bordered={false}
+        bordered={true}
         style={{
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
           wordWrap: 'break-word', // Ensure long words wrap

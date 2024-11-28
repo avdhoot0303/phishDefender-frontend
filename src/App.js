@@ -1,127 +1,135 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { Splitter,Layout, Button, Drawer, Space } from 'antd';
-import Sidebar from './components/Sidebar';
+import { Layout, Modal } from 'antd'; // Import Modal
 import EmailList from './components/EmailList';
-import EmailPreview from './components/EmailPreview';
-import EmailAnalysis from './components/EmailAnalysis';
-import Header from './components/AppHeader';
-import AccountInsights from './components/AccountInsights'; // New component for drawer content
 
-const { Sider } = Layout;
+import Header from './components/AppHeader';
+import SignIn from './components/SignIn';
+import EmailAnalysis from './components/EmailAnalysis';
+import SetToken from './components/SetToken';
+import { useNavigate } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import AppHeader from './components/AppHeader';
+import { FloatButton } from 'antd'; // Import the Floating Button
+import { InfoCircleOutlined } from '@ant-design/icons'; // Icon for the button
+
+const { Sider, Content } = Layout;
 
 const App = () => {
-  const [selectedFolder, setSelectedFolder] = useState('inbox');
-  const [selectedEmail, setSelectedEmail] = useState(null);
   const [emails, setEmails] = useState([]);
+  const [page, setPage] = useState(1); // Track current page
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false); // Drawer state
+  const [selectedEmail, setSelectedEmail] = useState(null);
+  const [authenticated, setAuthenticated] = useState(false); // Track authentication status
+  const [modalVisible, setModalVisible] = useState(false); // Modal visibility
 
-  // Fetch emails from the API
-  useEffect(() => {
-    const fetchEmails = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get('http://127.0.0.1:5001/api/emails', {
-          params: {
-            max_results: 25,
-          },
-        });
-        setEmails(response.data.emails);
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch emails');
-        setLoading(false);
+  // Function to fetch emails after authentication
+  const fetchEmails = async (page=1) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('https://email-service-210145104871.us-central1.run.app/api/fetch_emails', {
+        headers: {
+          Authorization: `Bearer ${token}`, // Send the token in the Authorization header
+        }      });
+      // Add new emails to the existing emails
+      if (page === 1) {
+        setEmails(response.data.emails); // First page, replace existing emails
+      } else {
+        setEmails((prevEmails) => [...prevEmails, ...response.data.emails]); // Append new emails
       }
-    };
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error fetching emails', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchEmails();
-  }, [selectedFolder]);
+  // If the user is authenticated, fetch emails
+  useEffect(() => {
+    if (authenticated) {
+      fetchEmails(page);
+    }
+  }, [authenticated, page]);
 
-  const openDrawer = () => setDrawerOpen(true);
-  const closeDrawer = () => setDrawerOpen(false);
+  // Function to show the modal
+  const showModal = () => {
+    setModalVisible(true);
+  };
+
+  // Function to hide the modal
+  const handleCancel = () => {
+    setModalVisible(false);
+  };
 
   return (
-    <Layout style={{ height: '100vh' }}>
-      <Header>
-        <Button type="primary" onClick={openDrawer} style={{ marginLeft: 'auto' }}>
-          Account Insights
-        </Button>
-      </Header>
-      <Layout>
-        <Sider width={200} theme="light">
-          <Sidebar selectedFolder={selectedFolder} onSelectFolder={setSelectedFolder} />
-        </Sider>
-        <Splitter
-          style={{
-            height: 'calc(100vh - 64px)', // Adjust height based on header
-            boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
-          }}
-        >
-          <Splitter.Panel collapsible>
-            <div
-              style={{
-                height: '100%',
-                padding: '10px',
-                background: '#f5f5f5',
-              }}
-            >
-              <EmailList
-                emails={emails}
-                selectedFolder={selectedFolder}
-                onSelectEmail={setSelectedEmail}
-                loading={loading}
-                error={error}
-              />
-            </div>
-          </Splitter.Panel>
-          <Splitter.Panel
-            collapsible={{
-              start: true,
-            }}
-          >
-            <div
-              style={{
-                height: '100%',
-                padding: '10px',
-                background: '#fff',
-                overflowY: 'auto',
-              }}
-            >
-              <EmailPreview email={selectedEmail} />
-            </div>
-          </Splitter.Panel>
-          <Splitter.Panel>
-            <div
-              style={{
-                height: '100%',
-                padding: '10px',
-                background: '#f5f5f5',
-                overflowY: 'auto',
-              }}
-            >
-              <EmailAnalysis email={selectedEmail} />
-            </div>
-          </Splitter.Panel>
-        </Splitter>
-      </Layout>
-      <Drawer
+    <Router>
+      <Routes>
+        <Route path="/signIn" element={<SignIn setAuthenticated={setAuthenticated} />} />
+        <Route path="/setToken" element={<SetToken setAuthenticated={setAuthenticated} />} />
+        
+        <Route
+          path="/inbox"
+          element={authenticated ? (
+            <Layout style={{ height: '100vh' }}>
+              <Header>
+                <AppHeader></AppHeader>
+              </Header>
+              <Layout>
+                <Sider width={200} theme="light">
+                  <Sidebar />
+                </Sider>
+                <Layout>
+                  <Content style={{ padding: '0 50px', marginTop: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div style={{ width: '67%' }}>
+                        <EmailList 
+                        loading={loading}
+                          setLoading={setLoading} // Pass setLoading as a prop
+                          fetchEmails={fetchEmails}
+                          setPage={setPage} // Pass setPage function to EmailList component
+                          page={page}
+                        emails={emails}  onSelectEmail={setSelectedEmail} />
+                      </div>
+                      <div style={{ width: '33%', marginLeft: '20px' }}>
+                        <EmailAnalysis email={selectedEmail} />
+                      </div>
+                    </div>
+                  </Content>
+                </Layout>
+              </Layout>
+            </Layout>
+          ) : (
+            <Navigate to="/signIn" />
+          )}
+        />
+      </Routes>
+
+      {/* Floating Button */}
+      <FloatButton
+        shape='sqaure'
+        type="primary"
+        // icon={<InfoCircleOutlined />}
+        description="Account Insights"
+        onClick={showModal}
+        style={{ position: 'fixed', right: 20, bottom: 20, insetInlineEnd:24, width:'20%'}}
+      />
+
+      {/* Modal for Account Insights */}
+      <Modal
         title="Account Insights"
-        placement="right"
+        visible={modalVisible}
+        onCancel={handleCancel}
+        footer={null}
         width={500}
-        onClose={closeDrawer}
-        open={drawerOpen}
-        extra={
-          <Space>
-            <Button onClick={closeDrawer}>Close</Button>
-          </Space>
-        }
       >
-        <AccountInsights />
-      </Drawer>
-    </Layout>
+        <p>Your account insights go here.</p>
+        <p>For example, you can display recent activities, statistics, etc.</p>
+        <button onClick={handleCancel}>Close</button>
+      </Modal>
+    </Router>
   );
 };
 

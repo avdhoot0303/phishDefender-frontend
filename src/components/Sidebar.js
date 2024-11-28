@@ -2,13 +2,13 @@ import React from 'react';
 import { Menu } from 'antd';
 
 const Sidebar = ({ selectedFolder, onSelectFolder }) => {
-  const folders = ['inbox', 'sent', 'drafts', 'trash'];
+  const folders = ['inbox', 'trash'];
 
   return (
     <Menu
       mode="vertical"
       selectedKeys={[selectedFolder]}
-      onClick={(e) => onSelectFolder(e.key)}
+      // onClick={(e) => onSelectFolder(e.key)}
       style={{ height: '100%', borderRight: 0 }}
     >
       {folders.map((folder) => (
